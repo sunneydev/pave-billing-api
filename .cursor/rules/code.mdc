@@ -1,0 +1,6 @@
+---
+description: Coding guidelines
+globs: 
+alwaysApply: false
+---
+Please do not write extensive comments, only put comments where they are absolutely necessary
