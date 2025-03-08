@@ -1,4 +1,4 @@
-# PAVE Fees API
+# PAVE Billing API
 
 Billing API built with Encore and Temporal for managing fees.
 
