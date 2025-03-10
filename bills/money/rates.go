@@ -13,3 +13,14 @@ const (
 	USD Currency = "USD"
 	GEL Currency = "GEL"
 )
+
+func (c Currency) Symbol() string {
+	switch c {
+	case USD:
+		return "$"
+	case GEL:
+		return "₾"
+	default:
+		return string(c)
+	}
+}

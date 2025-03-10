@@ -29,3 +29,7 @@ type LineItem struct {
 	Amount    money.Money `json:"amount"`
 	CreatedAt time.Time   `json:"created_at"`
 }
+
+type CloseBillSignal struct {
+	ClosedAt time.Time `json:"closed_at"`
+}

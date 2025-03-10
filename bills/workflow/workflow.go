@@ -48,10 +48,7 @@ func BillingPeriodWorkflow(ctx workflow.Context, billID string, customerID int, 
 			var processedItem LineItem
 
 			if receivedItem.Amount.Currency != bill.Currency {
-				convertedAmount, err := receivedItem.Amount.ConvertTo(bill.Currency, &money.ExchangeRates{
-					USDToGEL: config.Rates.USDToGEL,
-					GELToUSD: config.Rates.GELToUSD,
-				})
+				convertedAmount, err := receivedItem.Amount.ConvertTo(bill.Currency, config.Rates)
 				if err != nil {
 					logger.Error("failed to convert line item amount", "error", err)
 					return
@@ -80,17 +77,16 @@ func BillingPeriodWorkflow(ctx workflow.Context, billID string, customerID int, 
 		})
 
 		selector.AddReceive(closeChan, func(ch workflow.ReceiveChannel, more bool) {
-			var empty struct{}
-			ch.Receive(ctx, &empty)
+			var signal CloseBillSignal
+			ch.Receive(ctx, &signal)
 
 			if bill.Status == BillStatusClosed {
 				logger.Info("bill already closed", "bill_id", bill.ID)
 				return
 			}
 
-			now := workflow.Now(ctx).UTC()
 			bill.Status = BillStatusClosed
-			bill.ClosedAt = &now
+			bill.ClosedAt = &signal.ClosedAt
 			logger.Info("closed bill", "bill_id", bill.ID)
 		})
 

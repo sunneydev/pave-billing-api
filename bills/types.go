@@ -12,7 +12,8 @@ type CreateBillParams struct {
 }
 
 type ListBillsParams struct {
-	CustomerID int `json:"customer_id" query:"customer_id,omitempty"`
+	CustomerID int    `json:"customer_id" query:"customer_id,omitempty"`
+	Status     string `json:"status" query:"status,omitempty"`
 }
 
 type AddLineItemParams struct {

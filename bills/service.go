@@ -22,7 +22,6 @@ import (
 type Service struct {
 	temporalClient client.Client
 	worker         temporalworker.Worker
-	exchangeRates  *money.ExchangeRates
 }
 
 func initService() (service *Service, err error) {
@@ -41,14 +40,7 @@ func initService() (service *Service, err error) {
 		return
 	}
 
-	service = &Service{
-		temporalClient: temporalClient,
-		worker:         worker,
-		exchangeRates: &money.ExchangeRates{
-			USDToGEL: config.Rates.USDToGEL,
-			GELToUSD: config.Rates.GELToUSD,
-		},
-	}
+	service = &Service{temporalClient: temporalClient, worker: worker}
 
 	return
 }
@@ -149,7 +141,11 @@ func (s *Service) CloseBill(ctx context.Context, billID string, params *CloseBil
 		return
 	}
 
-	err = s.temporalClient.SignalWorkflow(ctx, billID, "", workflow.SignalCloseBill, struct{}{})
+	now := time.Now().UTC()
+
+	signal := workflow.CloseBillSignal{ClosedAt: now}
+
+	err = s.temporalClient.SignalWorkflow(ctx, billID, "", workflow.SignalCloseBill, signal)
 	if err != nil {
 		err = errors.SafeInternalError(err, "failed to close bill")
 		return
@@ -224,6 +220,11 @@ func (s *Service) ListBills(ctx context.Context, params *ListBillsParams) (respo
 				"workflow_id", execution.Execution.WorkflowId,
 			)
 
+			continue
+		}
+
+		// filter by status if provided
+		if params.Status != "" && bill.Status != workflow.BillStatus(params.Status) {
 			continue
 		}
 

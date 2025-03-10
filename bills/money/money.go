@@ -3,6 +3,7 @@ package money
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/shopspring/decimal"
 )
@@ -31,37 +32,39 @@ func (m Money) Add(other Money) (Money, error) {
 }
 
 func (m Money) String() string {
-	return fmt.Sprintf("%s %s", centsToDecimalString(m.cents), m.Currency)
+	return m.FormatWithSymbol()
 }
 
 func (m Money) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		Value    string   `json:"value"`
-		Currency Currency `json:"currency"`
-	}{
-		Value:    centsToDecimalString(m.cents),
-		Currency: m.Currency,
-	})
+	return json.Marshal(m.FormatWithSymbol())
 }
 
 func (m *Money) UnmarshalJSON(data []byte) error {
-	aux := struct {
-		Value    string   `json:"value"`
-		Currency Currency `json:"currency"`
-	}{}
-
-	if err := json.Unmarshal(data, &aux); err != nil {
+	var valueStr string
+	if err := json.Unmarshal(data, &valueStr); err != nil {
 		return err
 	}
 
-	amount, err := decimal.NewFromString(aux.Value)
+	valueStr = strings.TrimSpace(valueStr)
+
+	if len(valueStr) > 0 {
+		if strings.HasPrefix(valueStr, "$") {
+			m.Currency = USD
+			valueStr = strings.TrimPrefix(valueStr, "$")
+		} else if strings.HasPrefix(valueStr, "₾") {
+			m.Currency = GEL
+			valueStr = strings.TrimPrefix(valueStr, "₾")
+		}
+
+		valueStr = strings.TrimSpace(valueStr)
+	}
+
+	amount, err := decimal.NewFromString(valueStr)
 	if err != nil {
 		return fmt.Errorf("invalid amount: %v", err)
 	}
 
 	m.cents = decimalToCents(amount)
-	m.Currency = aux.Currency
-
 	return m.validate()
 }
 
@@ -130,4 +133,11 @@ func ZeroAmount() decimal.Decimal {
 
 func (m Money) Amount() decimal.Decimal {
 	return centsToDecimal(m.cents)
+}
+
+func (m Money) FormatWithSymbol() string {
+	amount := centsToDecimalString(m.cents)
+	symbol := m.Currency.Symbol()
+
+	return fmt.Sprintf("%s%s", symbol, amount)
 }
