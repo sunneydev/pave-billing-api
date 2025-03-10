@@ -35,39 +35,6 @@ func (m Money) String() string {
 	return m.FormatWithSymbol()
 }
 
-func (m Money) MarshalJSON() ([]byte, error) {
-	return json.Marshal(m.FormatWithSymbol())
-}
-
-func (m *Money) UnmarshalJSON(data []byte) error {
-	var valueStr string
-	if err := json.Unmarshal(data, &valueStr); err != nil {
-		return err
-	}
-
-	valueStr = strings.TrimSpace(valueStr)
-
-	if len(valueStr) > 0 {
-		if strings.HasPrefix(valueStr, "$") {
-			m.Currency = USD
-			valueStr = strings.TrimPrefix(valueStr, "$")
-		} else if strings.HasPrefix(valueStr, "₾") {
-			m.Currency = GEL
-			valueStr = strings.TrimPrefix(valueStr, "₾")
-		}
-
-		valueStr = strings.TrimSpace(valueStr)
-	}
-
-	amount, err := decimal.NewFromString(valueStr)
-	if err != nil {
-		return fmt.Errorf("invalid amount: %v", err)
-	}
-
-	m.cents = decimalToCents(amount)
-	return m.validate()
-}
-
 func (m Money) validate() error {
 	if m.Currency != USD && m.Currency != GEL {
 		return fmt.Errorf("invalid currency: %s", m.Currency)
@@ -140,4 +107,37 @@ func (m Money) FormatWithSymbol() string {
 	symbol := m.Currency.Symbol()
 
 	return fmt.Sprintf("%s%s", symbol, amount)
+}
+
+func (m Money) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.FormatWithSymbol())
+}
+
+func (m *Money) UnmarshalJSON(data []byte) error {
+	var valueStr string
+	if err := json.Unmarshal(data, &valueStr); err != nil {
+		return err
+	}
+
+	valueStr = strings.TrimSpace(valueStr)
+
+	if len(valueStr) > 0 {
+		if strings.HasPrefix(valueStr, "$") {
+			m.Currency = USD
+			valueStr = strings.TrimPrefix(valueStr, "$")
+		} else if strings.HasPrefix(valueStr, "₾") {
+			m.Currency = GEL
+			valueStr = strings.TrimPrefix(valueStr, "₾")
+		}
+
+		valueStr = strings.TrimSpace(valueStr)
+	}
+
+	amount, err := decimal.NewFromString(valueStr)
+	if err != nil {
+		return fmt.Errorf("invalid amount: %v", err)
+	}
+
+	m.cents = decimalToCents(amount)
+	return m.validate()
 }

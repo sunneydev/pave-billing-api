@@ -112,9 +112,21 @@ func (s *Service) AddLineItem(ctx context.Context, billID string, params *AddLin
 		return
 	}
 
+	var processedAmount money.Money
+
+	if amount.Currency != bill.Currency {
+		processedAmount, err = amount.ConvertTo(bill.Currency, config.Rates)
+		if err != nil {
+			err = errors.BadRequestError("invalid amount or currency")
+			return
+		}
+	} else {
+		processedAmount = amount
+	}
+
 	lineItem := workflow.LineItem{
 		ID:        uuid.New().String(),
-		Amount:    amount,
+		Amount:    processedAmount,
 		CreatedAt: time.Now().UTC(),
 	}
 

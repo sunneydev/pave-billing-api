@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sunneydev/pave-billing-api/bills/config"
 	"github.com/sunneydev/pave-billing-api/bills/money"
 	"go.temporal.io/sdk/workflow"
 )
@@ -37,41 +36,17 @@ func BillingPeriodWorkflow(ctx workflow.Context, billID string, customerID int, 
 		selector := workflow.NewSelector(ctx)
 
 		selector.AddReceive(addItemChan, func(ch workflow.ReceiveChannel, more bool) {
-			var receivedItem LineItem
-			ch.Receive(ctx, &receivedItem)
+			var lineItem LineItem
+			ch.Receive(ctx, &lineItem)
 
 			if bill.Status == BillStatusClosed {
 				logger.Info("ignoring line item for closed bill", "bill_id", bill.ID)
 				return
 			}
 
-			var processedItem LineItem
+			bill.LineItems = append(bill.LineItems, lineItem)
 
-			if receivedItem.Amount.Currency != bill.Currency {
-				convertedAmount, err := receivedItem.Amount.ConvertTo(bill.Currency, config.Rates)
-				if err != nil {
-					logger.Error("failed to convert line item amount",
-						"error", err,
-						"from_currency", receivedItem.Amount.Currency,
-						"to_currency", bill.Currency,
-						"item_id", receivedItem.ID,
-					)
-
-					return
-				}
-
-				processedItem = LineItem{
-					ID:        receivedItem.ID,
-					Amount:    convertedAmount,
-					CreatedAt: receivedItem.CreatedAt,
-				}
-			} else {
-				processedItem = receivedItem
-			}
-
-			bill.LineItems = append(bill.LineItems, processedItem)
-
-			newTotal, err := bill.Total.Add(processedItem.Amount)
+			newTotal, err := bill.Total.Add(lineItem.Amount)
 			if err != nil {
 				logger.Error("failed to add line item amount", "error", err)
 				return
