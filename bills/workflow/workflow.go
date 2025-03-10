@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"encore.app/bills/config"
-	"encore.app/bills/money"
+	"github.com/sunneydev/pave-billing-api/bills/config"
+	"github.com/sunneydev/pave-billing-api/bills/money"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -50,7 +50,13 @@ func BillingPeriodWorkflow(ctx workflow.Context, billID string, customerID int, 
 			if receivedItem.Amount.Currency != bill.Currency {
 				convertedAmount, err := receivedItem.Amount.ConvertTo(bill.Currency, config.Rates)
 				if err != nil {
-					logger.Error("failed to convert line item amount", "error", err)
+					logger.Error("failed to convert line item amount",
+						"error", err,
+						"from_currency", receivedItem.Amount.Currency,
+						"to_currency", bill.Currency,
+						"item_id", receivedItem.ID,
+					)
+
 					return
 				}
 

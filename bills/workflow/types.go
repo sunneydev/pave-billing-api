@@ -3,7 +3,7 @@ package workflow
 import (
 	"time"
 
-	"encore.app/bills/money"
+	"github.com/sunneydev/pave-billing-api/bills/money"
 )
 
 type BillStatus string

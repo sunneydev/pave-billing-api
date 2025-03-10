@@ -1,4 +1,4 @@
-module encore.app
+module github.com/sunneydev/pave-billing-api
 
 go 1.21
 

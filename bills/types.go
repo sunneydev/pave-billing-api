@@ -1,9 +1,9 @@
 package bill
 
 import (
-	"encore.app/bills/errors"
-	"encore.app/bills/money"
-	workflow "encore.app/bills/workflow"
+	"github.com/sunneydev/pave-billing-api/bills/errors"
+	"github.com/sunneydev/pave-billing-api/bills/money"
+	workflow "github.com/sunneydev/pave-billing-api/bills/workflow"
 )
 
 type CreateBillParams struct {
