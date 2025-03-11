@@ -7,16 +7,16 @@ import (
 
 	"encore.dev/rlog"
 	"github.com/google/uuid"
-	"github.com/sunneydev/pave-billing-api/bills/config"
-	"github.com/sunneydev/pave-billing-api/bills/errors"
-	"github.com/sunneydev/pave-billing-api/bills/money"
-	"github.com/sunneydev/pave-billing-api/bills/workflow"
-	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	temporalworker "go.temporal.io/sdk/worker"
+
+	"github.com/sunneydev/pave-billing-api/bills/config"
+	"github.com/sunneydev/pave-billing-api/bills/errors"
+	"github.com/sunneydev/pave-billing-api/bills/money"
+	"github.com/sunneydev/pave-billing-api/bills/workflow"
 )
 
 //encore:service
@@ -35,6 +35,7 @@ func initService() (service *Service, err error) {
 	worker := temporalworker.New(temporalClient, config.BillingTaskQueue, temporalworker.Options{})
 
 	worker.RegisterWorkflow(workflow.BillingPeriodWorkflow)
+	worker.RegisterActivity(workflow.SendBillClosedEmail)
 
 	if err = worker.Start(); err != nil {
 		err = fmt.Errorf("failed to start worker: %v", err)
@@ -176,21 +177,6 @@ func (s *Service) GetBill(ctx context.Context, billID string, params *GetBillPar
 
 // getBill is an internal helper to retrieve a bill by ID and customer ID.
 func (s *Service) getBill(ctx context.Context, billID string, customerID int) (bill *workflow.Bill, err error) {
-	descResp, err := s.temporalClient.DescribeWorkflowExecution(ctx, billID, "")
-	if err != nil {
-		if _, ok := err.(*serviceerror.NotFound); ok {
-			err = errors.NotFoundError(err, "bill")
-		} else {
-			err = errors.SafeInternalError(err, "failed to describe workflow")
-		}
-		return
-	}
-
-	if descResp.WorkflowExecutionInfo.Status != enums.WORKFLOW_EXECUTION_STATUS_RUNNING {
-		err = errors.SafeInternalError(nil, "workflow is not active")
-		return
-	}
-
 	resp, err := s.temporalClient.QueryWorkflow(ctx, billID, "", workflow.QueryGetBill)
 	if err != nil {
 		switch err.(type) {
